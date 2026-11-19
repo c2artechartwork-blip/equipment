@@ -471,7 +471,7 @@ select.in { appearance: auto; }
   // ---------- 관리 ----------
   function admin(tab) {
     S.view = 'admin';
-    var v = shell('<h2>관리</h2><div class="tabs"><button data-t="eq">장비</button><button data-t="ct">분류</button><button data-t="us">사람</button><button data-t="lg">기록</button></div><div id="ab"></div><button class="btn w" style="margin-top:16px" id="bk">처음으로</button>');
+    var v = shell('<h2>관리</h2><div class="tabs"><button data-t="eq">장비</button><button data-t="ct">분류</button><button data-t="us">직원</button><button data-t="lg">기록</button></div><div id="ab"></div><button class="btn w" style="margin-top:16px" id="bk">처음으로</button>');
     $('#bk').onclick = home;
     $$('[data-t]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-t') === tab); b.onclick = function () { admin(b.getAttribute('data-t')); }; });
     var box = $('#ab');
