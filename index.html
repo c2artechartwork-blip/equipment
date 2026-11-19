@@ -32,7 +32,7 @@ main { max-width: 560px; margin: 0 auto; padding: 16px 16px calc(32px + env(safe
 .btn.y { background: var(--y); color: var(--k); }
 .btn.k { background: var(--k); color: #fff; }
 .btn.w { background: #fff; color: var(--k); border: 1px solid var(--line); font-weight: 700; font-size: 16px; min-height: 48px; }
-.btn.sm { min-height: 38px; font-size: 14px; width: auto; padding: 0 14px; border-radius: 10px; }
+.btn.sm { white-space: nowrap; min-height: 38px; font-size: 14px; width: auto; padding: 0 14px; border-radius: 10px; }
 .btn.big { min-height: 120px; font-size: 26px; border-radius: 20px; flex-direction: column; gap: 6px; }
 .btn.big small { font-size: 14px; font-weight: 600; opacity: .7; }
 .row { display: flex; gap: 8px; align-items: center; }
@@ -167,7 +167,9 @@ th { color: var(--mute); font-size: 12px; }
         throw r.error;
       });
   }
-  function fail(e) { toast(e && e.message || '오류가 발생했습니다.', true); }
+  function fail(e) { if (e && e.silent) return; toast(e && e.message || '오류가 발생했습니다.', true); }
+  // 화면을 옮긴 뒤 늦게 도착한 응답은 무시 (느린 서버 대비)
+  function vapi(action, payload) { var g = S.gen; return api(action, payload).then(function (d) { if (g !== S.gen) throw { silent: true }; return d; }); }
 
   // ---------- 로그인 / 가입 ----------
   function showLogin(mode) {
@@ -204,7 +206,7 @@ th { color: var(--mute); font-size: 12px; }
 
   // ---------- 화면 틀 ----------
   function shell(inner) {
-    stopCam();
+    stopCam(); S.gen = (S.gen || 0) + 1;
     app.innerHTML = '<header><img src="logo-h-yellow.png" alt="C2" id="hl"><button class="who" id="who">' + esc(S.auth.name) + (S.auth.role === '관리자' ? ' · 관리자' : '') + '</button></header><main id="v">' + inner + '</main>';
     $('#hl').onclick = home;
     $('#who').onclick = function () {
@@ -222,7 +224,7 @@ th { color: var(--mute); font-size: 12px; }
     $('#go').onclick = scan;
     $('#all').onclick = all;
     if ($('#adm')) $('#adm').onclick = function () { admin('eq'); };
-    api('me').then(function (d) {
+    vapi('me').then(function (d) {
       S.auth.role = d.user.role; store('c2s.auth', S.auth);
       $('#cnt').textContent = d.mine.length ? d.mine.length + '개' : '';
       $('#mine').innerHTML = d.mine.length ? d.mine.map(rowHtml).join('') : '<div class="empty">지금 가진 장비가 없습니다.</div>';
@@ -246,7 +248,7 @@ th { color: var(--mute); font-size: 12px; }
       '<button class="btn w" style="margin-top:16px" id="bk">처음으로</button>');
     $('#bk').onclick = home;
     var f = '';
-    api('list').then(function (d) {
+    vapi('list').then(function (d) {
       function render() {
         var q = $('#q').value.trim().toLowerCase();
         var items = d.items.filter(function (it) {
@@ -367,7 +369,7 @@ th { color: var(--mute); font-size: 12px; }
       '<p class="small mute">QR 라벨은 A4 24칸 라벨지(64×33.9mm, 폼텍 3108 등)에 맞춰 인쇄됩니다. 인쇄 배율은 100%로.</p>';
     var items = [];
     function load() {
-      api('list', { all: true }).then(function (d) {
+      vapi('list', { all: true }).then(function (d) {
         items = d.items;
         $('#el').innerHTML = items.length ? items.map(function (it) {
           return '<div class="item" style="cursor:default"><input type="checkbox" data-c="' + esc(it.id) + '" style="width:22px;height:22px"><div class="grow"><div class="nm">' + esc(it.name) + '</div><div class="sub mono">' + esc(it.id) + '</div></div>' + badge(it) +
@@ -425,7 +427,7 @@ th { color: var(--mute); font-size: 12px; }
   function adminUsers(box) {
     box.innerHTML = '<div class="list" id="ul"><div class="empty">불러오는 중…</div></div><p class="small mute">새 직원은 사이트에서 "처음이에요"로 직접 가입합니다. 퇴사자는 "중지"하면 바로 막힙니다.</p>';
     function load() {
-      api('users').then(function (d) {
+      vapi('users').then(function (d) {
         $('#ul').innerHTML = d.users.map(function (u) {
           var me = u.name === S.auth.name;
           return '<div class="item" style="cursor:default;flex-wrap:wrap"><div class="grow"><div class="nm">' + esc(u.name) + (me ? ' (나)' : '') + '</div><div class="sub">' + esc(u.role) + (u.active ? '' : ' · <b style="color:var(--bad)">중지됨</b>') + (u.has_pin ? '' : ' · PIN 초기화됨') + '</div></div>' +
@@ -443,7 +445,7 @@ th { color: var(--mute); font-size: 12px; }
   }
   function adminLog(box) {
     box.innerHTML = '<div class="row" style="margin-bottom:10px"><input class="in" id="lq" placeholder="장비 · 사람 · 사용처 검색" style="flex:3"><button class="btn w sm" id="csv" style="min-height:52px">CSV</button></div><div class="card" style="padding:4px 10px;overflow:auto"><table><thead><tr><th>시각</th><th>구분</th><th>장비</th><th>사람</th><th>반납예정 · 사용처</th></tr></thead><tbody id="lb"><tr><td colspan="5" class="mute">불러오는 중…</td></tr></tbody></table></div>';
-    api('log').then(function (d) {
+    vapi('log').then(function (d) {
       var rows = d.rows;
       function render() {
         var q = $('#lq').value.trim().toLowerCase();
